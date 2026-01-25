@@ -32,7 +32,7 @@ local GUILD_EVENT_LOG = GUILD_EVENT_LOG
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 
 local CURRENT_PAGE = 0
-local MAX_PAGE = 8
+local MAX_PAGE = 9
 
 local function SetupChat(noDisplayMsg)
 	FCF_ResetChatWindows() -- Monitor this
@@ -475,6 +475,7 @@ local function ResetAll()
 	InstallOption4Button:SetScript("OnClick", nil)
 	InstallOption4Button:SetText("")
 	InstallSlider:Hide()
+	InstallSlider:SetScript("OnValueChanged", nil)
 	InstallSlider.Min:SetText("")
 	InstallSlider.Max:SetText("")
 	InstallSlider.Cur:SetText("")
@@ -554,13 +555,14 @@ local function SetPage(PageNum)
 		InstallSlider:SetValueStep(0.01)
 		InstallSlider:SetMinMaxValues(0.4, 1.15)
 
-		local value = E.global.general.UIScale
-		InstallSlider:SetValue(value)
-		InstallSlider.Cur:SetText(value)
 		InstallSlider:SetScript("OnValueChanged", function(self)
 			E.global.general.UIScale = self:GetValue()
 			InstallSlider.Cur:SetText(E.global.general.UIScale)
 		end)
+
+		local value = E.global.general.UIScale
+		InstallSlider:SetValue(value)
+		InstallSlider.Cur:SetText(value)
 
 		InstallSlider.Min:SetText(0.4)
 		InstallSlider.Max:SetText(1.15)
@@ -610,6 +612,29 @@ local function SetPage(PageNum)
 		InstallOption2Button:SetScript("OnClick", function() SetupAuras() end)
 		InstallOption2Button:SetText(L["Icons Only"])
 	elseif PageNum == 8 then
+		f.SubTitle:SetText("Ebonhold")
+		f.Desc1:SetText("You can now adjust the scale for the Ebonhold addon UI elements.")
+		f.Desc2:SetText("Importance: |cffFF0000Low|r")
+
+		InstallSlider:Show()
+		InstallSlider:SetValueStep(0.01)
+		InstallSlider:SetMinMaxValues(0.5, 2)
+
+		InstallSlider:SetScript("OnValueChanged", function(self)
+			local value = E:Round(self:GetValue(), 2)
+			E.db.ebonhold.scale = value
+			InstallSlider.Cur:SetText(value)
+			local EB = E:GetModule("Ebonhold", true)
+			if EB then EB:UpdateSkin() end
+		end)
+
+		local value = (E.db.ebonhold and E.db.ebonhold.scale) or 1
+		InstallSlider:SetValue(value)
+		InstallSlider.Cur:SetText(value)
+
+		InstallSlider.Min:SetText(0.5)
+		InstallSlider.Max:SetText(2)
+	elseif PageNum == 9 then
 		f.SubTitle:SetText(L["Installation Complete"])
 		f.Desc1:SetText(L["You are now finished with the installation process. If you are in need of technical support please visit us at https://github.com/ElvUI-WotLK."])
 		f.Desc2:SetText(L["Please click the button below so you can setup variables and ReloadUI."])

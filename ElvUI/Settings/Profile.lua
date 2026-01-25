@@ -4406,3 +4406,7 @@ E.LayoutMoverPositions = {
 		ShiftAB = "TOPLEFT,ElvUIParent,BOTTOMLEFT,4,273"
 	}
 }
+
+P.ebonhold = {
+	scale = 1,
+}

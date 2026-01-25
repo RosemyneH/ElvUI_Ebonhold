@@ -19,7 +19,7 @@ E.Options.args.skins = {
 			set = function(info, value) E.private.skins.blizzard.enable = value E:StaticPopup_Show("PRIVATE_RL") end
 		},
 		ace3 = {
-			order = 3,
+			order = 4,
 			type = "toggle",
 			name = "Ace3",
 			get = function(info) return E.private.skins.ace3.enable end,
