@@ -4409,4 +4409,5 @@ E.LayoutMoverPositions = {
 
 P.ebonhold = {
 	scale = 1,
+	blockServerAddon = true,
 }

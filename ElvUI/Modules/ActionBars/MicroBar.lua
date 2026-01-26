@@ -28,20 +28,20 @@ local MICRO_BUTTONS = {
 
 local function onEnter(button)
 	if AB.db.microbar.mouseover then
-		E:UIFrameFadeIn(ElvUI_MicroBar, 0.2, ElvUI_MicroBar:GetAlpha(), AB.db.microbar.alpha)
+		E:UIFrameFadeIn(ElvUI_Ebonhold_MicroBar, 0.2, ElvUI_Ebonhold_MicroBar:GetAlpha(), AB.db.microbar.alpha)
 	end
 
-	if button and button ~= ElvUI_MicroBar and button.backdrop then
+	if button and button ~= ElvUI_Ebonhold_MicroBar and button.backdrop then
 		button.backdrop:SetBackdropBorderColor(unpack(E.media.rgbvaluecolor))
 	end
 end
 
 local function onLeave(button)
 	if AB.db.microbar.mouseover then
-		E:UIFrameFadeOut(ElvUI_MicroBar, 0.2, ElvUI_MicroBar:GetAlpha(), 0)
+		E:UIFrameFadeOut(ElvUI_Ebonhold_MicroBar, 0.2, ElvUI_Ebonhold_MicroBar:GetAlpha(), 0)
 	end
 
-	if button and button ~= ElvUI_MicroBar and button.backdrop then
+	if button and button ~= ElvUI_Ebonhold_MicroBar and button.backdrop then
 		button.backdrop:SetBackdropBorderColor(unpack(E.media.bordercolor))
 	end
 end
@@ -49,7 +49,63 @@ end
 function AB:HandleMicroButton(button)
 	if not button then return end
 
-	button:SetParent(ElvUI_MicroBar)
+	button:SetParent(ElvUI_Ebonhold_MicroBar)
+
+	if not button.elvuiPositionProtected then
+		if not button.elvuiOriginalSetPoint then
+			button.elvuiOriginalSetPoint = button.SetPoint
+			button.elvuiOriginalClearAllPoints = button.ClearAllPoints
+			button.elvuiOriginalSetSize = button.SetSize
+			button.elvuiOriginalSetWidth = button.SetWidth
+			button.elvuiOriginalSetHeight = button.SetHeight
+			button.elvuiOriginalSetParent = button.SetParent
+		end
+
+		button.SetPoint = function(self, ...)
+			if E.db.ebonhold and E.db.ebonhold.blockServerAddon and self:GetParent() == ElvUI_Ebonhold_MicroBar and not self.elvuiAllowChanges then
+				return
+			end
+			self.elvuiOriginalSetPoint(self, ...)
+		end
+
+		button.ClearAllPoints = function(self)
+			if E.db.ebonhold and E.db.ebonhold.blockServerAddon and self:GetParent() == ElvUI_Ebonhold_MicroBar and not self.elvuiAllowChanges then
+				return
+			end
+			self.elvuiOriginalClearAllPoints(self)
+		end
+
+		button.SetSize = function(self, ...)
+			if E.db.ebonhold and E.db.ebonhold.blockServerAddon and self:GetParent() == ElvUI_Ebonhold_MicroBar and not self.elvuiAllowChanges then
+				return
+			end
+			self.elvuiOriginalSetSize(self, ...)
+		end
+
+		button.SetWidth = function(self, ...)
+			if E.db.ebonhold and E.db.ebonhold.blockServerAddon and self:GetParent() == ElvUI_Ebonhold_MicroBar and not self.elvuiAllowChanges then
+				return
+			end
+			self.elvuiOriginalSetWidth(self, ...)
+		end
+
+		button.SetHeight = function(self, ...)
+			if E.db.ebonhold and E.db.ebonhold.blockServerAddon and self:GetParent() == ElvUI_Ebonhold_MicroBar and not self.elvuiAllowChanges then
+				return
+			end
+			self.elvuiOriginalSetHeight(self, ...)
+		end
+
+		button.SetParent = function(self, parent)
+			local parentName = parent and (parent:GetName() or "Unnamed") or "nil"
+			if E.db.ebonhold and E.db.ebonhold.blockServerAddon and self:GetParent() == ElvUI_Ebonhold_MicroBar and parentName ~= "ElvUI_Ebonhold_MicroBar" and not self.elvuiAllowChanges then
+				return
+			end
+			self.elvuiOriginalSetParent(self, parent)
+		end
+
+		button.elvuiPositionProtected = true
+	end
 
 	-- ʕ •ᴥ•ʔ✿ If it's already skinned by ElvUI, we're done ✿ ʕ •ᴥ•ʔ
 	if button.isElvUISkinned then return end
@@ -94,15 +150,30 @@ function AB:HandleMicroButton(button)
 end
 
 function AB:UpdateMicroButtonsParent()
-	if not ElvUI_MicroBar then return end
+	if not ElvUI_Ebonhold_MicroBar then return end
+
+	if InCombatLockdown() then
+		AB.NeedsUpdateMicroButtonsParent = true
+		self:RegisterEvent("PLAYER_REGEN_ENABLED")
+		return
+	end
 
 	for i = 1, #MICRO_BUTTONS do
 		local button = _G[MICRO_BUTTONS[i]]
 		if button then
-			if button:GetParent() ~= ElvUI_MicroBar then
-				button:SetParent(ElvUI_MicroBar)
+			if button:GetParent() ~= ElvUI_Ebonhold_MicroBar then
+				button.elvuiAllowChanges = true
+				button:SetParent(ElvUI_Ebonhold_MicroBar)
+				button.elvuiAllowChanges = nil
 			end
-			if not button.isElvUISkinned then
+			
+			local needsFullSetup = not button.elvuiPositionProtected or not button.elvuiOriginalSetPoint
+			if needsFullSetup or not button.isElvUISkinned then
+				if needsFullSetup then
+					button.elvuiPositionProtected = nil
+					button.isElvUISkinned = nil
+					button.isSkinned = nil
+				end
 				self:HandleMicroButton(button)
 			end
 		end
@@ -127,14 +198,20 @@ function AB:UpdateMicroBarVisibility()
 		visibility = gsub(visibility, "[\n\r]", "")
 	end
 
-	RegisterStateDriver(ElvUI_MicroBar.visibility, "visibility", (self.db.microbar.enabled and visibility) or "hide")
+	RegisterStateDriver(ElvUI_Ebonhold_MicroBar.visibility, "visibility", (self.db.microbar.enabled and visibility) or "hide")
 end
 
 function AB:UpdateMicroPositionDimensions()
-	if not ElvUI_MicroBar then return end
+	if not ElvUI_Ebonhold_MicroBar then return end
+
+	if InCombatLockdown() then
+		AB.NeedsUpdateMicroPositionDimensions = true
+		self:RegisterEvent("PLAYER_REGEN_ENABLED")
+		return
+	end
 
 	local numRows = 1
-	local prevButton = ElvUI_MicroBar
+	local prevButton = ElvUI_Ebonhold_MicroBar
 	local offset = E:Scale(E.PixelMode and 1 or 3)
 	local spacing = E:Scale(offset + self.db.microbar.buttonSpacing)
 
@@ -142,6 +219,20 @@ function AB:UpdateMicroPositionDimensions()
 	for i = 1, #MICRO_BUTTONS do
 		local button = _G[MICRO_BUTTONS[i]]
 		if button then
+			if button:GetParent() ~= ElvUI_Ebonhold_MicroBar then
+				button.elvuiAllowChanges = true
+				button:SetParent(ElvUI_Ebonhold_MicroBar)
+				button.elvuiAllowChanges = nil
+			end
+			
+			local needsFullSetup = not button.elvuiPositionProtected or not button.elvuiOriginalSetPoint
+			if needsFullSetup then
+				button.elvuiPositionProtected = nil
+				button.isElvUISkinned = nil
+				button.isSkinned = nil
+				self:HandleMicroButton(button)
+			end
+			
 			buttons[#buttons + 1] = button
 		end
 	end
@@ -151,10 +242,11 @@ function AB:UpdateMicroPositionDimensions()
 		local lastColumnButton = i - self.db.microbar.buttonsPerRow
 		lastColumnButton = buttons[lastColumnButton]
 
+		button.elvuiAllowChanges = true
 		button:Size(self.db.microbar.buttonSize, self.db.microbar.buttonSize * 1.4)
 		button:ClearAllPoints()
 
-		if prevButton == ElvUI_MicroBar then
+		if prevButton == ElvUI_Ebonhold_MicroBar then
 			button:Point("TOPLEFT", prevButton, "TOPLEFT", offset, -offset)
 		elseif (i - 1) % self.db.microbar.buttonsPerRow == 0 then
 			button:Point("TOP", lastColumnButton, "BOTTOM", 0, -spacing)
@@ -162,19 +254,20 @@ function AB:UpdateMicroPositionDimensions()
 		else
 			button:Point("LEFT", prevButton, "RIGHT", spacing, 0)
 		end
+		button.elvuiAllowChanges = nil
 
 		prevButton = button
 	end
 
-	if AB.db.microbar.mouseover and not ElvUI_MicroBar:IsMouseOver() then
-		ElvUI_MicroBar:SetAlpha(0)
+	if AB.db.microbar.mouseover and not ElvUI_Ebonhold_MicroBar:IsMouseOver() then
+		ElvUI_Ebonhold_MicroBar:SetAlpha(0)
 	else
-		ElvUI_MicroBar:SetAlpha(self.db.microbar.alpha)
+		ElvUI_Ebonhold_MicroBar:SetAlpha(self.db.microbar.alpha)
 	end
 
 	local numButtons = #buttons
 	if numButtons == 0 then
-		ElvUI_MicroBar:Size(0, 0)
+		ElvUI_Ebonhold_MicroBar:Size(0, 0)
 		return
 	end
 
@@ -185,22 +278,21 @@ function AB:UpdateMicroPositionDimensions()
 
 	AB.MicroWidth = (((buttonWidth + spacing) * numColumns) - spacing) + (offset * 2)
 	AB.MicroHeight = (((buttonHeight + spacing) * numRows) - spacing) + (offset * 2)
-	ElvUI_MicroBar:Size(AB.MicroWidth, AB.MicroHeight)
+	ElvUI_Ebonhold_MicroBar:Size(AB.MicroWidth, AB.MicroHeight)
 
-	if ElvUI_MicroBar.mover then
-		ElvUI_MicroBar.mover:Size(ElvUI_MicroBar:GetSize())
-
-		if not InCombatLockdown() then
-			ElvUI_MicroBar:ClearAllPoints()
-			ElvUI_MicroBar:Point("TOPLEFT", ElvUI_MicroBar.mover, "TOPLEFT")
-		end
+	if ElvUI_Ebonhold_MicroBar.mover then
+		ElvUI_Ebonhold_MicroBar.mover:Size(ElvUI_Ebonhold_MicroBar:GetSize())
+		ElvUI_Ebonhold_MicroBar.isSettingPosition = true
+		ElvUI_Ebonhold_MicroBar:ClearAllPoints()
+		ElvUI_Ebonhold_MicroBar:Point("TOPLEFT", ElvUI_Ebonhold_MicroBar.mover, "TOPLEFT")
+		ElvUI_Ebonhold_MicroBar.isSettingPosition = nil
 	end
 
-	if ElvUI_MicroBar.mover then
+	if ElvUI_Ebonhold_MicroBar.mover then
 		if self.db.microbar.enabled then
-			E:EnableMover(ElvUI_MicroBar.mover:GetName())
+			E:EnableMover(ElvUI_Ebonhold_MicroBar.mover:GetName())
 		else
-			E:DisableMover(ElvUI_MicroBar.mover:GetName())
+			E:DisableMover(ElvUI_Ebonhold_MicroBar.mover:GetName())
 		end
 	end
 
@@ -208,15 +300,31 @@ function AB:UpdateMicroPositionDimensions()
 end
 
 function AB:SetupMicroBar()
-	if ElvUI_MicroBar then return end
+	if ElvUI_Ebonhold_MicroBar then return end
 
-	local microBar = CreateFrame("Frame", "ElvUI_MicroBar", E.UIParent)
+	local microBar = CreateFrame("Frame", "ElvUI_Ebonhold_MicroBar", E.UIParent)
 	microBar:Point("TOPLEFT", E.UIParent, "TOPLEFT", 4, -48)
 	microBar:SetFrameStrata("LOW")
 	microBar:EnableMouse(true)
 	microBar:SetClampedToScreen(true)
 	microBar:SetScript("OnEnter", onEnter)
 	microBar:SetScript("OnLeave", onLeave)
+
+	local originalMicroBarSetPoint = microBar.SetPoint
+	microBar.SetPoint = function(self, ...)
+		if InCombatLockdown() and not self.isSettingPosition then
+			return
+		end
+		originalMicroBarSetPoint(self, ...)
+	end
+
+	local originalMicroBarClearAllPoints = microBar.ClearAllPoints
+	microBar.ClearAllPoints = function(self)
+		if InCombatLockdown() and not self.isSettingPosition then
+			return
+		end
+		originalMicroBarClearAllPoints(self)
+	end
 
 	microBar.visibility = CreateFrame("Frame", nil, E.UIParent, "SecureHandlerStateTemplate")
 	microBar.visibility:SetScript("OnShow", function() microBar:Show() end)

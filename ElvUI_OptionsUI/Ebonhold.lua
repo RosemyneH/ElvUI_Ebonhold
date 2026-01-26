@@ -36,6 +36,12 @@ E.Options.args.ebonhold = {
 					min = 0.5, max = 2, step = 0.01,
 					isPercent = true,
 				},
+				blockServerAddon = {
+					order = 2,
+					type = "toggle",
+					name = "Follow ElvUI Microbar",
+					desc = "Prevents the Project Ebonhold server addon from interfering with the ElvUI microbar positioning and visibility.",
+				},
 			},
 		},
 	},
