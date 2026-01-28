@@ -4408,6 +4408,18 @@ E.LayoutMoverPositions = {
 }
 
 P.ebonhold = {
-	scale = 1,
+	scale = 1.19,
 	blockServerAddon = true,
+	perkHideButton = {
+		scale = 1.20,
+	},
+	perkChoice1 = {
+		scale = 1.20,
+	},
+	perkChoice2 = {
+		scale = 1.20,
+	},
+	perkChoice3 = {
+		scale = 1.20,
+	},
 }
